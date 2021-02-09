@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/github/license/SandraKla/MRI_Analysis.svg)]()
 
-<img src="example.png" align="center"/>
+<img src="www/example.png" align="center"/>
 
 For more information use the [Homepage](https://sandrakla.github.io/ShinySurfer_Homepage/).
 
