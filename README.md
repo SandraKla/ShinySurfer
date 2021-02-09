@@ -29,3 +29,7 @@ runGitHub("ShinySurfer", "SandraKla")
 ```
 
 All required packages must be downloaded before starting this app. For more information about the required packages use the [Homepage](https://sandrakla.github.io/ShinySurfer_Homepage/).
+
+## Usage
+
+Under Start > Upload data > Load the dataset OASIS.xlsx as an example dataset
