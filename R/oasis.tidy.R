@@ -1,3 +1,8 @@
+#' 
+#' 
+#' @param session
+#' @param area
+#' @param OASIS
 oasis.tidy <- function(session,area,OASIS){
   cols <- ncol(OASIS)
   

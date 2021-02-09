@@ -1,10 +1,13 @@
-source("geom_flat_violin.R")
-
-### get the facet name for four areas
+#' get the facet name for four areas
+#' 
+#' @param x
 facet.area1 <- function(x){
   return('ICV')
 }
 
+#' get the facet name for four areas
+#' 
+#' @param x
 facet.area2 <- function(x){
   if(grepl("*left*",x)&&grepl("*perc*",x)){
     return("perc_left")
@@ -23,10 +26,9 @@ facet.area2 <- function(x){
   }
 }
 
-
-
-
-
+#' get the facet name for four areas
+#' 
+#' @param x
 facet.area3 <- function(x){
   if(grepl("*left*",x)&&grepl("*norm*",x)){
     return("norm_left")
@@ -47,6 +49,9 @@ facet.area3 <- function(x){
   }
 }
 
+#' get the facet name for four areas
+#' 
+#' @param x
 facet.area4 <- function(x){
   if(grepl("perc",x)&&grepl("left",x)){
     return("grey_perc_left")
@@ -65,7 +70,9 @@ facet.area4 <- function(x){
   }
 }
 
-## fix the facet name
+#' fix the facet name
+#' 
+#' @param x
 get_area_name <- function(x){
   x <- gsub("_","",x)
   x <- sub("right","",x)
@@ -83,24 +90,30 @@ get_area_name <- function(x){
   x <- sub("matter","",x)
 }
 
-
-
+#' 
+#' 
+#' @param x
 get_area_factor <- function(x){
   x <- as.character(x)
   name_level <- rev(unique(x))
   factor(x,levels = name_level,ordered = TRUE)
 }
 
-
+#' 
+#' 
+#' @param x
 get_lr_factor <- function(x){
   x <- as.character(x)
   name_level <- unique(x)
   factor(x,levels = name_level,ordered = TRUE)
 }
 
-
-
-
+#' 
+#' 
+#' @param data
+#' @param area.label
+#' @param add.xlabel
+#' @param fill.col
 get.plot <- function(data,area.label=NULL,add.xlabel=FALSE,fill.col="red"){
   
   f.facet <- switch (area.label,
@@ -109,9 +122,6 @@ get.plot <- function(data,area.label=NULL,add.xlabel=FALSE,fill.col="red"){
                      "area3" = "facet.area3",
                      "area4" = "facet.area4"
   )
-  
-  
-  
   
   # name_level.area1 <- names(data)
   data.melt <- melt(data)
@@ -136,10 +146,14 @@ get.plot <- function(data,area.label=NULL,add.xlabel=FALSE,fill.col="red"){
   }else{
     p <- p+xlab("")
   }
-  
   return(p)
 }
 
+#' 
+#' 
+#' @param data
+#' @param area
+#' @param label
 get.plots <- function(data,area.label=NULL){
   gg.title <- switch (area.label,
                       "area1" = "ICV",           
@@ -173,9 +187,9 @@ get.plots <- function(data,area.label=NULL){
   return(plots)
 }
 
-
-
-
+#' 
+#' 
+#' @param data
 get.ceres.qc.plot <- function(data){
   area1 <- data[,1]
   area2 <- data[,2:92]

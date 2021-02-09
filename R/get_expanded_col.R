@@ -1,4 +1,7 @@
-get.regerssion.col <- function(dat){
+#' 
+#' 
+#' @param data
+get.regression.col <- function(dat){
   not.regression.col <- NULL
   col.names <- names(dat)
   d.one <- dat[1,]
@@ -11,9 +14,6 @@ get.regerssion.col <- function(dat){
         print(not.regression.col)
       }
   }
-  
- 
   dat <- select(dat,-not.regression.col)
   return(names(dat))
-  
 }

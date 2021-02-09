@@ -1,5 +1,7 @@
-source("geom_flat_violin.R")
-
+#' 
+#' 
+#' @param data
+#' @param col
 get.other.qc.plot <- function(data,col){
   ps <- list()
   
@@ -23,8 +25,5 @@ get.other.qc.plot <- function(data,col){
   }
   
   plots <- plot_grid(plotlist = ps,ncol = 2)
-  
-  
-  
   return(plots)
 }

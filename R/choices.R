@@ -1,3 +1,10 @@
+#' 
+#' 
+#' @param col
+#' @param data.table
+#' @param selectedValue
+#' @param col.type
+
 get.choice <- function(col,data.table,seletedValue=NULL,col.type=NULL){
   is.select=is.na(as.numeric(data.table[[col]]))
   if(is.select==TRUE){
@@ -10,5 +17,4 @@ get.choice <- function(col,data.table,seletedValue=NULL,col.type=NULL){
     data.table <- data.table[data.table[[col]]<=as.numeric(v_max),]
     data.table <- data.table[data.table[[col]]>=as.numeric(v_min),]}
   return(data.table)
-  
 }

@@ -1,5 +1,11 @@
+#' http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_%28ggplot2%29/
+#' 
+#' @param plotlist
+#' @param file
+#' @param cols
+#' @param layout
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
-  library(grid)
+  
   
   # Make a list from the ... arguments and plotlist
   plots <- c(list(...), plotlist)
@@ -32,8 +38,12 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
                                       layout.pos.col = matchidx$col))
     }
   }
-} # Source: http://www.cookbook-r.com/Graphs/Multiple_graphs_on_one_page_%28ggplot2%29/
+} 
 
+#' 
+#' 
+#' @param data
+#' @param var_explain
 add_lm_trace_freesurfer <- function(data,var_explan="reaction_time"){
   cols <- ncol(data)
   explan <- var_explan
@@ -59,6 +69,5 @@ add_lm_trace_freesurfer <- function(data,var_explan="reaction_time"){
       theme_minimal()
     p <- c(p,list(p1))
   }
-  
   return(multiplot(plotlist = p,cols = 1))
 }

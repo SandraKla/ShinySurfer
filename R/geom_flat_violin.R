@@ -1,14 +1,28 @@
-# Based mostly on copy/pasting from ggplot2 geom_violin source:
-# https://github.com/hadley/ggplot2/blob/master/R/geom-violin.r
-
+#' 
+#' 
+#' @param x
 sem <- function(x){
   return(sd(x)/sqrt(length(x)))
 }
 
+#' 
+#' 
+#' @param a
+#' @param b
 "%||%" <- function(a, b) {
   if (!is.null(a)) a else b
 }
 
+#' https://github.com/tidyverse/ggplot2/blob/master/R/geom-violin.r
+#' 
+#' @param mapping
+#' @param data
+#' @param stat
+#' @param position
+#' @param trim
+#' @param scale
+#' @param show.legend
+#' @param inherit.aes
 geom_flat_violin <- function(mapping = NULL, data = NULL, stat = "ydensity",
                         position = "dodge", trim = TRUE, scale = "area",
                         show.legend = NA, inherit.aes = TRUE, ...) {
@@ -28,13 +42,15 @@ geom_flat_violin <- function(mapping = NULL, data = NULL, stat = "ydensity",
   )
 }
 
+#' 
+#' 
+#' @param Geom
+#' @param setup_data
 #' @rdname ggplot2-ggproto
 #' @format NULL
 #' @usage NULL
 #' @export
-GeomFlatViolin <-
-  ggproto("GeomFlatViolin", Geom,
-          setup_data = function(data, params) {
+GeomFlatViolin <- ggproto("GeomFlatViolin", Geom, setup_data = function(data, params) {
             data$width <- data$width %||%
               params$width %||% (resolution(data$x, FALSE) * 0.9)
             

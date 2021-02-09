@@ -4,16 +4,8 @@ source("libraries.R")
 
 ####################################### Scripts ##########################################
 
-source("geom_flat_violin.R")
-source("lm_function_74.R")
-source("get_ceres_plot.R")
-source("oasis.tidy.R")
-source("select&slider2Ui.R")
-source("get_other_plot.R")
-source("choices.R")
-source("lasso_shiny.R")
-source("get_expanded_col.R")
-source("lm_function_ceres.R")
+file.source=list.files("R",pattern="*.R",full.names = TRUE)
+lapply(file.source, source,.GlobalEnv)
 
 file.source=list.files("ggseg3d//R",pattern="*.R",full.names = TRUE)
 lapply(file.source, source,.GlobalEnv)
@@ -28,9 +20,7 @@ ui <- fluidPage(
     dashboardSidebar( width = 350, 
       sidebarMenu(id="sideM", 
         
-        menuItem("Home", tabName = "home", icon = icon("home"), br()),
-        
-        menuItem("Upload Data",tabName = "updata", icon = icon("file"),
+        menuItem("Start",tabName = "updata", icon = icon("home"),
                  prettyRadioButtons("data_type",label = "Data File Type",
                                     choices = c("FreeSurfer","CERES","Others"), inline = T),
                  fileInput("data_table","Upload data",accept = c("xlsx","xls")),
@@ -38,7 +28,7 @@ ui <- fluidPage(
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
                    fileInput("name_file","Names correction", accept = c("xlsx","xls"))
-                 )),
+                 ), selected = T),
         
         menuItem("Quality Control",tabName = "qc",icon=icon("chart-bar"), expandedName = "qc",
                  conditionalPanel(
@@ -175,7 +165,7 @@ ui <- fluidPage(
                     && !(input.sidebarItemExpanded=='ss')
                     && !(input.sidebarItemExpanded=='ds')
                     && !(input.sidebarItemExpanded=='ls')",
-        includeMarkdown("Home.md")
+        includeMarkdown("www//Home.md")
       )
     )
   )
@@ -286,7 +276,7 @@ server<-function(input, output,session) {
   output$fil_ui <- renderUI({
     
     
-    print(names(get_oasis()))
+    #print(names(get_oasis()))
     if(input$com==0){
       tagList(
         selectInput("fil",label = "Filter",
@@ -332,10 +322,10 @@ server<-function(input, output,session) {
     cols <- ncol(OASIS)
     if(input$data_type=="FreeSurfer"){
       explans <- dplyr::select(OASIS,-(cols-147):-cols)
-      names_explan <- get.regerssion.col(explans)
+      names_explan <- get.regression.col(explans)
     }else if(input$data_type=="CERES"){
       explans <- dplyr::select(OASIS,1:(cols-274))
-      names_explan <- get.regerssion.col(explans)
+      names_explan <- get.regression.col(explans)
     }else{
       names_explan <- names(OASIS)
     }

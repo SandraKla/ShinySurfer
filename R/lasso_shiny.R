@@ -1,6 +1,12 @@
-####Lasso Regression von Prof. Klawonn#####  
-
-lasso_training_results <- function(dat,target.column,lambda_seq=10^seq(2,-2,by = -.1),alpha=1,normalise=T){
+#' Lasso Regression von Prof. Klawonn
+#' 
+#' @param dat
+#' @param target.column
+#' @param lambda_seq
+#' @param alpha
+#' @param normalise
+lasso_training_results <- function(dat,target.column,lambda_seq=10^seq(2,-2,by = -.1),
+                                   alpha=1,normalise=T){
   taco <- target.column
   if (!is.numeric(taco)){
     taco <- grep(target.column,colnames(dat))
@@ -26,9 +32,16 @@ lasso_training_results <- function(dat,target.column,lambda_seq=10^seq(2,-2,by =
   return(list(lambda=best_lam,coefficients=coef(lasso_best)[,1],predictions=predictions))
 }
 
-
-
-lasso_bootstrap <- function(dat,target.column,lambda_seq=10^seq(2,-2,by = -.1),alpha=1,normalise=T,n.bootstrap=10){
+#' Lasso Regression von Prof. Klawonn
+#' 
+#' @param dat
+#' @param target.column
+#' @param lambda_seq
+#' @param alpha
+#' @param normalise
+#' @param n.bootstrap
+lasso_bootstrap <- function(dat,target.column,lambda_seq=10^seq(2,-2,by = -.1),
+                            alpha=1,normalise=T,n.bootstrap=10){
   
   lambda <- rep(0,n.bootstrap)
   coefficient.matrix <- matrix(0,nrow=n.bootstrap,ncol=ncol(dat)+1)
@@ -42,15 +55,31 @@ lasso_bootstrap <- function(dat,target.column,lambda_seq=10^seq(2,-2,by = -.1),a
     }})
   return(coefficient.matrix)
 }
+
+#' 
+#' 
+#' @param x
 prop.nonzero <- function(x){
   return(sum(!is.na(x) & x!=0)/sum(!is.na(x)))
 }
+
+#' 
+#' 
+#' @param x
 get.proportion.of.nonzero.coeffcients <- function(coefficient.matrix){
   return(apply(coefficient.matrix,2,prop.nonzero))
 }
+
+#' 
+#' 
+#' @param x
 sign.consistency <- function(x){
   return(sum(!is.na(x) & x>=0)==sum(!is.na(x)) | sum(!is.na(x) & x<=0)==sum(!is.na(x)))
 }
+
+#' 
+#' 
+#' @param x
 get.sign.consistency <- function(coefficient.matrix){
   return(apply(coefficient.matrix,2,sign.consistency))
 }

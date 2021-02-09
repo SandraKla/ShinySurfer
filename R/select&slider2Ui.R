@@ -1,3 +1,9 @@
+#' 
+#' 
+#' @param col.name
+#' @param col
+#' @param selectedValue
+#' @param ui_type
 render.ui.output <- function(col.name,col,seletedValue=NULL,ui_type=NULL){
   toRenderUi <- if(is.na(as.numeric(col[[1]]))){
     selectInput(paste0(col.name,ui_type),paste(col.name),
