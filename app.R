@@ -4,12 +4,20 @@ source("libraries.R")
 
 ####################################### Scripts ##########################################
 
-file.source=list.files("R",pattern="*.R",full.names = TRUE)
-lapply(file.source, source,.GlobalEnv)
-
 file.source=list.files("ggseg3d//R",pattern="*.R",full.names = TRUE)
 lapply(file.source, source,.GlobalEnv)
 load("desterieux_3d.rda")
+
+source("geom_flat_violin.R")
+source("R/lm_function_74.R")
+source("R/get_ceres_plot.R")
+source("R/oasis.tidy.R")
+source("R/select&slider2Ui.R")
+source("R/get_other_plot.R")
+source("R/choices.R")
+source("R/lasso_shiny.R")
+source("R/get_expanded_col.R")
+source("R/lm_function_ceres.R")
 
 ####################################### User Interface ###################################
 
