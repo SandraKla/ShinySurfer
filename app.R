@@ -24,10 +24,13 @@ source("R/lm_function_ceres.R")
 ui <- fluidPage(
   dashboardPage(
     
+    ### Header ###
     dashboardHeader(title="ShinySurfer", titleWidth = 350),
+    ### Sidebar ###
     dashboardSidebar( width = 350, 
       sidebarMenu(id="sideM", 
         
+        ### Start ###
         menuItem("Start",tabName = "updata", icon = icon("home"),
                  prettyRadioButtons("data_type",label = "Data File Type",
                                     choices = c("FreeSurfer","CERES","Others"), inline = T),
@@ -35,9 +38,9 @@ ui <- fluidPage(
                  
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
-                   fileInput("name_file","Names correction", accept = c("xlsx","xls"))
-                 ), selected = T),
+                   fileInput("name_file","Names correction", accept = c("xlsx","xls"))), selected = T),
         
+        ### Quality Control ###
         menuItem("Quality Control",tabName = "qc",icon=icon("chart-bar"), expandedName = "qc",
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
@@ -46,6 +49,7 @@ ui <- fluidPage(
                    actionButton("dp","Make Quality Raincloud")
                  )),
         
+        ### Descriptive Statistics ###
         menuItem("Descriptive Statistics",expandedName = "ds",icon=icon("brain"),
                  conditionalPanel(
                    condition="output.dataFileLoad==true && input.data_type=='FreeSurfer'",
@@ -56,15 +60,13 @@ ui <- fluidPage(
                      condition = "input.com==1",
                      uiOutput("com_cd")
                    ),
-                   
-                   
+    
                    prettyRadioButtons(inputId = "select_hemisphere",
                                       label = "Choose Hemisphere",
                                       choices = c("left","right","both"),
-                                      selected = "both",inline = TRUE
-                   ),
+                                      selected = "both",inline = TRUE),
                    
-                   checkboxInput("col","Color and Value",FALSE),
+                   checkboxInput("col","Color and Value", value = FALSE),
                    
                    checkboxInput("com","Composity",value = TRUE),
                    #checkboxInput("check_download","Download",FALSE),
@@ -90,6 +92,8 @@ ui <- fluidPage(
                    #)
                  )
         ),
+        
+        ### Linear Regression ###
         menuItem("Linear Regression",expandedName = "ss",icon=icon("chart-line"),
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
@@ -97,9 +101,9 @@ ui <- fluidPage(
                    uiOutput("ss_kon"),
                    actionButton("rp","Regression Plots")
                  )
-                 
         ),
         
+        ### Lasso Regression ###
         menuItem("Lasso Regression",expandedName = "ls",icon=icon("chart-line"),
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
@@ -107,24 +111,33 @@ ui <- fluidPage(
                    uiOutput("ls_kon"),
                    actionButton("lp","TableLasso generation")
                  )
-                 
         ),
         
-        tags$button("Restart", 
-                    id="restart", 
-                    type="button", class="btn btn-danger action-button", onclick="history.go(0)")
-        
-        
+        ### Restart Button ###
+        tags$button("Restart", id="restart", 
+                    type="button", class="btn btn-danger action-button", 
+                    onclick="history.go(0)")
       )
     ),  
     
-    
+    ### MainBar ###
     dashboardBody(
+      
+      ### Start ###
+      conditionalPanel(
+        condition = "!(input.sidebarItemExpanded=='qc')
+                    && !(input.sidebarItemExpanded=='ss')
+                    && !(input.sidebarItemExpanded=='ds')
+                    && !(input.sidebarItemExpanded=='ls')",
+        includeMarkdown("www//Home.md")
+      ),
 
+      ### Quality Control ###
       conditionalPanel(
         condition="output.dataFileLoad==true && input.sidebarItemExpanded=='qc'",
         uiOutput("qc_tabs")),
       
+      ### Descriptive Statistics ###
       conditionalPanel(condition="input.col==1 && input.sidebarItemExpanded=='ds'",
                        colourInput("color_obergrenze", "Please select the color of the upper bound", "red"),
                        numericInput(inputId = 'wert_obergrenze',
@@ -139,16 +152,7 @@ ui <- fluidPage(
                        actionButton("remove_mitte","Remove")
       ),
       
-      conditionalPanel(
-        condition="output.dataFileLoad==true && input.sidebarItemExpanded=='ss'",
-        uiOutput("ss_tabs")
-        # tabsetPanel(
-        #   type="tabs",id="ss_tab",
-        #   tabPanel("Table",DT::dataTableOutput("ss_table")),
-        #   tabPanel("Regression Plots",plotOutput("regression",height ="40000px",width = "1000px"))
-        # ),
-      ),
-      
+      ### Descriptive Statistics ###
       conditionalPanel(
         condition="output.dataFileLoad==true && input.sidebarItemExpanded=='ds' && input.data_type=='FreeSurfer'",
         tabsetPanel(
@@ -159,6 +163,18 @@ ui <- fluidPage(
         )
       ),
       
+      ### Linear Regression ###
+      conditionalPanel(
+        condition="output.dataFileLoad==true && input.sidebarItemExpanded=='ss'",
+        uiOutput("ss_tabs")
+        # tabsetPanel(
+        #   type="tabs",id="ss_tab",
+        #   tabPanel("Table",DT::dataTableOutput("ss_table")),
+        #   tabPanel("Regression Plots",plotOutput("regression",height ="40000px",width = "1000px"))
+        # ),
+      ),
+      
+      ### Lasso Regression ###
       conditionalPanel(
         condition="output.dataFileLoad==true && input.sidebarItemExpanded=='ls'",
         tabsetPanel(
@@ -166,14 +182,6 @@ ui <- fluidPage(
           tabPanel("Table",DT::dataTableOutput("ls_table")),
           tabPanel("Lasso tabel",DT::dataTableOutput("lasso_table"))
         )
-      ),
-      
-      conditionalPanel(
-        condition = "!(input.sidebarItemExpanded=='qc')
-                    && !(input.sidebarItemExpanded=='ss')
-                    && !(input.sidebarItemExpanded=='ds')
-                    && !(input.sidebarItemExpanded=='ls')",
-        includeMarkdown("www//Home.md")
       )
     )
   )
@@ -181,6 +189,7 @@ ui <- fluidPage(
 
 ####################################### Server ###########################################
 
+### Get Dataset ###
 server<-function(input, output,session) {
   OASIS <<- NULL
   
@@ -204,27 +213,21 @@ server<-function(input, output,session) {
   outputOptions(output,'dataFileLoad',suspendWhenHidden=FALSE)
   
   
-  ######################################Data preprocess######################################### 
-  
-  #######################################################
-  #############transform the names of OASIS##############
-  #######################################################
-  
-  
+  ##################################### Data preprocess ##################################
+
+  ### Transform the names of OASIS ###
   get_oasis <- reactive({
     is.null(input$data_table)
     if(!is.null(input$name_file)){
       area <- read_excel(input$name_file[["datapath"]],col_names = FALSE)
       return(oasis.tidy(session,area,OASIS))
-      
     }else{
       oasis_data <- OASIS
       return(oasis_data)
     }
-    
   })
   
-  
+  ### Fill User Interface ###
   get_fil <- reactive({
     input$fil
   })
@@ -232,7 +235,6 @@ server<-function(input, output,session) {
   get_fil_com <- reactive({
     input$fil_com
   })
-  
   
   get_qc_fil <- reactive({
     input$qc_fil
@@ -245,13 +247,10 @@ server<-function(input, output,session) {
   get_ls_fil <- reactive({
     input$ls_fil
   })
-  
-  #######################################################
-  ######make the names pass to left and right brain######
-  #######################################################
-  # load desterieux_3d
+
+  ### load desterieux_3d ###
   get_altes <- reactive({
-    desterieux_neu<-desterieux_3d
+    desterieux_neu <- desterieux_3d
     oa <- get_oasis()
     cols <- ncol(oa)
     t_name <- names(oa[(cols-147):cols])
@@ -272,19 +271,13 @@ server<-function(input, output,session) {
         }
       }
     }
-    
     return(desterieux_neu)
   })
   
   
-  #######################################################
-  ##############output the select choices################
-  #######################################################
-  
+  ### ###
   output$fil_ui <- renderUI({
-    
-    
-    #print(names(get_oasis()))
+  
     if(input$com==0){
       tagList(
         selectInput("fil",label = "Filter",
@@ -299,15 +292,33 @@ server<-function(input, output,session) {
     }
   })
   
+  ### Sidebar for Quality Control ###
   output$fil_qc <- renderUI({
+    
     input$name_file
-   
-      tagList(
-      selectInput("qc_fil",label = "Filter",choices = names(get_oasis())[-1],multiple = TRUE)
-    )
+    tagList(
+      selectInput("qc_fil",label = "Filter",
+                  choices = names(get_oasis())[-1],multiple = TRUE))
   })
   
+  ### Sidebar for Quality Control ###
+  output$qc_kon <- renderUI({
+    x <- NULL
+    for (ff in get_qc_fil()) {
+      x <- append(x,list(
+        render.ui.output(ff,get_oasis()[[ff]],input[[paste0(ff,"_qc")]],ui_type="_qc")
+      ))
+    }
+    if(input$data_type=="Others"){
+      x <- append(x,list(
+        selectInput("qc_col","Selected Cols to RainCloud",selected = NULL,multiple = TRUE,
+                    choices = c("All",names(get_qc_choice())))
+      ))
+    }
+    return(x)
+  })
   
+  ### ###
   output$fil_ss <- renderUI({
     input$name_file
     tagList(
@@ -315,6 +326,7 @@ server<-function(input, output,session) {
     )
   })
   
+  ### ###
   output$fil_ls <- renderUI({
     input$name_file
     tagList(
@@ -322,8 +334,7 @@ server<-function(input, output,session) {
     )
   })
   
-  
-  ## get the explan names
+  ### get the explan names
   get_explan_names <- reactive({
     input$data_table
     input$data_type
@@ -341,10 +352,8 @@ server<-function(input, output,session) {
     return(names_explan)
   })  
   
-  
-  #######################################################
-  #filter the data from according to selected condition##
-  #######################################################
+  ##### Filtering #####
+  ### filter the data from according to selected condition ###
   get_choice <- reactive({    # get the select col and return the selected date
     input$data_table
     col_input <- get_fil()
@@ -370,8 +379,6 @@ server<-function(input, output,session) {
     }
     return(u_oasis)
   })
-  
-  
   
   get_qc_choice <- reactive({    # get the select col and return the selected date
     col_input <- get_qc_fil()
@@ -402,13 +409,8 @@ server<-function(input, output,session) {
     return(u_oasis)
   })
   
-  
-  #######################################################
-  ##########output the ui from the selected col##########
-  #######################################################
-  
-  
-  output$ds_kon <- renderUI({     # ouput the select UI
+  ### ###
+  output$ds_kon <- renderUI({   
     x <- vector("list",length=length(get_fil()))
     if(input$com==0||is.null(input$com)){
       for (ff in get_fil()) {
@@ -467,31 +469,11 @@ server<-function(input, output,session) {
           }
         ))
       }
-      
-      
     }
     return(x)
   })
   
-  
-  ## Quality Control
-  output$qc_kon <- renderUI({
-    x <- NULL
-    for (ff in get_qc_fil()) {
-      x <- append(x,list(
-        render.ui.output(ff,get_oasis()[[ff]],input[[paste0(ff,"_qc")]],ui_type="_qc")
-      ))
-    }
-    if(input$data_type=="Others"){
-      x <- append(x,list(
-        selectInput("qc_col","Selected Cols to RainCloud",selected = NULL,multiple = TRUE,choices = c("All",names(get_qc_choice())))
-      ))
-    }
-    
-    
-    return(x)
-  })
-  
+  ### ###
   observeEvent(input$qc_col,{
     cols <- input$qc_col
     if("All" %in% cols){
@@ -499,10 +481,7 @@ server<-function(input, output,session) {
     }
   })
   
-  
-  
-  
-  ## Stastics
+  ### Stastics
   output$ss_kon <- renderUI({
     x <- NULL
     for (ff in get_ss_fil()) {
@@ -519,6 +498,7 @@ server<-function(input, output,session) {
     return(x)
   })
   
+  ### ###
   output$ls_kon <- renderUI({
     x <- NULL
     for (ff in get_ls_fil()) {
@@ -558,8 +538,7 @@ server<-function(input, output,session) {
     return(x)
   })
   
-  
-  ## get the composite way 
+  ### get the composite way ###
   output$com_cd <- renderUI({
     tagList(
       prettyRadioButtons("com_way_c",label = "Central tendency",choices = c("mean","median"),inline = TRUE),
@@ -567,7 +546,7 @@ server<-function(input, output,session) {
     )
   })
   
-  
+  ### ###
   observeEvent(input$com_way_c,{
     output$com_cd <- renderUI({
       tagList(
@@ -578,6 +557,7 @@ server<-function(input, output,session) {
     com_cd <<- input$com_way_c
   })
   
+  ### ###
   observeEvent(input$com_way_d,{
     output$com_cd <- renderUI({
       tagList(
@@ -599,21 +579,19 @@ server<-function(input, output,session) {
             "SEM" =  "sem")
   })
   
-  
-  #######################################################
-  ##################output OASIS table###################
-  #######################################################
+  ### ###
   output$qc_table<- DT::renderDataTable({
     ausgewaehlte_daten <- get_qc_choice()
     DT::datatable(ausgewaehlte_daten,class = "display nowrap",options = list(scrollX=TRUE))
   })
   
+  ### ###
   output$ds_table<- DT::renderDataTable({
     ausgewaehlte_daten <- get_choice()
     DT::datatable(ausgewaehlte_daten,class = "display nowrap",options = list(scrollX=TRUE))
   })
   
-  
+  ### ###
   output$ds_composity <- DT::renderDataTable({
     data <- get_choice()
     cols <- ncol(data)
@@ -624,30 +602,28 @@ server<-function(input, output,session) {
     data_sd <- apply(data, 2, sd)
     data_sem <- apply(data, 2, sem)
     
-    frame_statistics <- tibble("thickness"=names(data),"mean"=data_mean,"median"=data_median,
+    frame_statistics <- tibble("thickness"=names(data),"mean"=data_mean,
+                               "median"=data_median,
                                "SD"=data_sd,"SEM"=data_sem)
     frame_statistics[2:4] <- frame_statistics[2:4]%>%mutate_if(is.numeric,round,2)
     frame_statistics[5] <- frame_statistics[5]%>%mutate_if(is.numeric,round,4)
     
-    
     DT::datatable(frame_statistics,options = list(scrolly=TRUE))
   })
   
-  
+  ### ###
   output$ss_table<- DT::renderDataTable({
     ausgewaehlte_daten <- get_ss_choice()
     DT::datatable(ausgewaehlte_daten,class = "display nowrap",options = list(scrollX=TRUE))
   })
   
+  ### ###
   output$ls_table<- DT::renderDataTable({
     ausgewaehlte_daten <- get_ls_choice()
     DT::datatable(ausgewaehlte_daten,class = "display nowrap",options = list(scrollX=TRUE))
   })
   
-  
-  #######################################################
-  ###################color update auto###################
-  #######################################################  
+  ### color update auto ###
   observeEvent({
     input$com_way_c
     input$com_way_d
@@ -671,20 +647,14 @@ server<-function(input, output,session) {
       wert <- wert%>%mutate_if(is.numeric,round,4)
     }
     
-    
     max_wert<-max(wert)
     min_wert<-min(wert)
     updateNumericInput(session,"wert_obergrenze",value = max_wert)
     updateNumericInput(session, inputId = "wert_untergrenze", value = min_wert)
-    
-  }
+    }
   )
   
-
-  
-  #######################################################
-  ###################control panel tab###################
-  ####################################################### 
+  ### control panel tab ###
   observeEvent(input$single_region,{
     if(input$single_region==0){
       hideTab(inputId ="tab",target = "DistributionPlot")
@@ -695,6 +665,7 @@ server<-function(input, output,session) {
     }
   })
   
+  ### ###
   observeEvent(input$com,{
     if(input$com==0){
       hideTab(inputId ="tab",target="Quality Control")
@@ -704,12 +675,8 @@ server<-function(input, output,session) {
       showTab(inputId ="tab",target="Quality Control")
     }
   })
-  
-  
-  
-  #######################################################
-  ########Add new values and colors(UI)##################
-  #######################################################
+ 
+  ### Add new values and colors(UI) ###
   index_selection <- reactiveVal(1)
   observeEvent(input$add_mitte, {
     insertUI(
@@ -736,8 +703,7 @@ server<-function(input, output,session) {
     
   })
   
-  
-  
+  ### ###
   get_auswahl_data <- reactive({
     auswahl_area <- get_choice()
     cols <- ncol(auswahl_area)
@@ -775,15 +741,10 @@ server<-function(input, output,session) {
     }
     
     auswahl_data[[" "]] <- paste(auswahl_data$area,", Wert ist ",auswahl_data$wert)
-    
-    
     return(auswahl_data)
   })
   
-  
-  #######################################################
-  ################Generate 3D brain map##################
-  #######################################################
+  ### Generate 3D brain map ###
   output$ggseg3d<- renderPlotly({
     input$ab  
     if(input$ab==0)
@@ -794,9 +755,7 @@ server<-function(input, output,session) {
         return()
       }
       
-      ###################################
-      #######new values and colors#######
-      ###################################
+      ### new values and colors ###
       
       auswahl_wert <- c(input$wert_obergrenze,input$wert_untergrenze)
       auswahl_color <- c(input$color_obergrenze,input$color_untergrenze)
@@ -808,18 +767,12 @@ server<-function(input, output,session) {
       }
       names(auswahl_wert) <- auswahl_color
       
-      
-      
-      ###################################
-      ########select_hemisphere##########
-      ###################################
+      ### select_hemisphere ###
       auswahl_hemisphere<-input$select_hemisphere
       if(auswahl_hemisphere=="both"){auswahl_hemisphere=c("left","right")}
       
-      
-      ###################################
-      #############ggseg3d###############
-      ###################################
+    
+      ### plot ggseg3d ###
       
       gg <<- ggseg3d(.data = auswahl_data,
                      atlas = get_altes(),
@@ -861,55 +814,50 @@ server<-function(input, output,session) {
                                      x=0,y=1,
                                      align="left",
                                      font=list(family="Arial",size=13)))
-        
       }
     })
   })
   
-  
+  ### ###
   observeEvent(input$ab,{
     updateTabsetPanel(session,"ds_tab",selected = "3D")
   })
-  
-  ###########################################
-  #####################orca##################
-  ###########################################
-  get_eye <- reactive({
-    d <- event_data("plotly_relayout")
-    if(input$ab==0||is.null(d)){
-      return(NULL)
-    }else {
-      return(d$scene.camera[["eye"]])
-    }
-  })
+
+  # get_eye <- reactive({
+  #   d <- event_data("plotly_relayout")
+  #   if(input$ab==0||is.null(d)){
+  #     return(NULL)
+  #   }else {
+  #     return(d$scene.camera[["eye"]])
+  #   }
+  # })
   
   
-  #p<-output$ggseg3d
-  observeEvent(input$download,{
-    if(is.null(get_eye())){
-      if(isFALSE(input$down_filter)){
-        orca(gg, paste(input$name,input$format, sep = ".", collapse = NULL))
-      }else{
-        orca(gg%>%layout(annotations=list(visible=TRUE,text=filter_data,showarrow=FALSE,x=0,y=1,align="left",font=list(family="Arial",size=13))),
-             paste(input$name,input$format, sep = ".", collapse = NULL))
-      }
-    }else{
-      eye <- get_eye()
-      scene=list(camera=list(eye=list(x=eye$x,y=eye$y,z=eye$z)))
-      # gg_eye <- gg%>%layout(scene=scene)
-      if(isFALSE(input$down_filter)){
-        orca(gg%>%layout(scene=scene),paste(input$name,input$format, sep = ".", collapse = NULL))
-      }else{
-        gg_eye <- gg%>%layout(scene=scene,annotations=list(visible=TRUE,text=filter_data,showarrow=FALSE,x=0,y=1,align="left",font=list(family="Arial",size=13)))
-        orca(gg_eye,paste(input$name,input$format, sep = ".", collapse = NULL))
-      }
-    }
-  })
+  # #p<-output$ggseg3d
+  # observeEvent(input$download,{
+  #   if(is.null(get_eye())){
+  #     if(isFALSE(input$down_filter)){
+  #       orca(gg, paste(input$name,input$format, sep = ".", collapse = NULL))
+  #     }else{
+  #       orca(gg%>%layout(annotations=list(visible=TRUE,text=filter_data,showarrow=FALSE,
+  # x=0,y=1,align="left",font=list(family="Arial",size=13))),
+  #            paste(input$name,input$format, sep = ".", collapse = NULL))
+  #     }
+  #   }else{
+  #     eye <- get_eye()
+  #     scene=list(camera=list(eye=list(x=eye$x,y=eye$y,z=eye$z)))
+  #     # gg_eye <- gg%>%layout(scene=scene)
+  #     if(isFALSE(input$down_filter)){
+  #       orca(gg%>%layout(scene=scene),paste(input$name,input$format, sep = ".", collapse = NULL))
+  #     }else{
+  #       gg_eye <- gg%>%layout(scene=scene,annotations=list(visible=TRUE,text=filter_data,showarrow=FALSE,
+  # x=0,y=1,align="left",font=list(family="Arial",size=13)))
+  #       orca(gg_eye,paste(input$name,input$format, sep = ".", collapse = NULL))
+  #     }
+  #   }
+  # })
   
-  
-  ###########################################
-  #####distributionPlot when single person###
-  ###########################################
+  ### distributionPlot when single person ###
   output$distributionPlot<-renderPlot({
     if(input$single_region==0)
       return()
@@ -940,22 +888,23 @@ server<-function(input, output,session) {
     
   })
   
-  
-  ###########################################
-  ##########ouput Quality Control############
-  ###########################################
-  
+  ### ouput Quality Control ###
+  ### ###
   observeEvent(input$dp,{
     updateTabsetPanel(session,"qc_tab","Quality Raincloud")
   })
   
+  ### ###
   observeEvent(input$rp,{
     updateTabsetPanel(session,"ss_tab","Regression Plots")
   })
+  
+  ### ###
   observeEvent(input$lp,{
     updateTabsetPanel(session,"ls_tab","Lasso tabel")
   })
   
+  ### ###
   output$quality <- renderPlot({
     if(is.null(input$dp) || input$dp==0){return(NULL)}
     
@@ -1004,7 +953,7 @@ server<-function(input, output,session) {
     })
   })
   
-  
+  ### Mainbody Quality Control ###
   output$qc_tabs <- renderUI({
     tagList(
       tabsetPanel(type="tabs",id="qc_tab",
@@ -1014,12 +963,14 @@ server<-function(input, output,session) {
                   }else if(input$data_type=="CERES"){
                     tabPanel("Quality Raincloud",plotOutput("quality",height = "8500px",width = "1500px"))
                   }else{
-                    tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),width = "1300px"))
+                    tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),
+                                                            width = "1300px"))
                   }
       )
     )
   })
   
+  ### ###
   output$ss_tabs <- renderUI({
     tagList(
       tabsetPanel(type="tabs",id="ss_tab",
@@ -1029,15 +980,15 @@ server<-function(input, output,session) {
                   }else if(input$data_type=="CERES"){
                     tabPanel("Regression Plots",plotOutput("regression",height = "59000px",width = "1500px"))
                   }else{
-                    # tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),width = "1300px"))
+                    # tabPanel("Quality Raincloud",plotOutput("quality",height = 
+                    #paste0(((length(input$qc_col)+1)%/%2)*250,"px"),width = "1300px"))
                     tabPanel("Regression Plots",plotOutput("regression",height = "500px",width = "500px"))
                   }
-                  
       )
     )
   })
   
-  
+  ### ###
   output$regression <- renderPlot({
     input$rp
     if(input$rp==0){
@@ -1063,8 +1014,7 @@ server<-function(input, output,session) {
     
   })
   
-  
-  ##lasso regression output###
+  ### lasso regression output ###
   observeEvent(input$lp, { 
     dat<-get_ls_choice()
     col.length <- length(dat)
@@ -1079,15 +1029,14 @@ server<-function(input, output,session) {
     }
     
     lasso.b.all <- lasso_bootstrap(dat,names(dat)[1])
-    
-    
     prop.nonzero.all <- get.proportion.of.nonzero.coeffcients(lasso.b.all[,-1])
     consistent.sign.all <- get.sign.consistency(lasso.b.all[,-1])
     bs.data <<- data.frame(prop.nonzero.all,consistent.sign.all)
     rownames(bs.data) <- colnames(lasso.b.all)[-1]
     label_ExplantoryVariable<-input$lasso_variable
     output$lasso_table<- DT::renderDataTable({
-      DT::datatable(bs.data,class = "display nowrap",options = list(scrollX=TRUE),caption = paste("Explantory variable:", label_ExplantoryVariable))
+      DT::datatable(bs.data,class = "display nowrap",options = list(scrollX=TRUE),
+                    caption = paste("Explantory variable:", label_ExplantoryVariable))
     })
   })
 }
