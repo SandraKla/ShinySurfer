@@ -6,18 +6,12 @@ source("libraries.R")
 
 file.source=list.files("ggseg3d//R",pattern="*.R",full.names = TRUE)
 lapply(file.source, source,.GlobalEnv)
+
+file.source=list.files("R",pattern="*.R",full.names = TRUE)
+lapply(file.source, source,.GlobalEnv)
 load("desterieux_3d.rda")
 
 source("geom_flat_violin.R")
-source("R/lm_function_74.R")
-source("R/get_ceres_plot.R")
-source("R/oasis.tidy.R")
-source("R/select&slider2Ui.R")
-source("R/get_other_plot.R")
-source("R/choices.R")
-source("R/lasso_shiny.R")
-source("R/get_expanded_col.R")
-source("R/lm_function_ceres.R")
 
 ####################################### User Interface ###################################
 
@@ -31,20 +25,23 @@ ui <- fluidPage(
       sidebarMenu(id="sideM", 
         
         ### Start ###
-        menuItem("Start",tabName = "updata", icon = icon("home"),
-                 prettyRadioButtons("data_type",label = "Data File Type",
-                                    choices = c("FreeSurfer","CERES","Others"), inline = T),
-                 fileInput("data_table","Upload data",accept = c("xlsx","xls")),
+        menuItem("Start",tabName = "updata", icon = icon("home"), selected = T,
+                 prettyRadioButtons("data_type",label = "Data File Type", inline = T,
+                                    choices = c("FreeSurfer","CERES")), #"Others")),
+                 checkboxInput("check_old_new_data", label = "Old data format", value = FALSE),
+                 fileInput("data_tablelh","Freesurfer - LH (only new format)",accept = c("txt")),
+                 fileInput("data_tablerh","Freesurfer - RH (only new format)",accept = c("txt")),
+                 fileInput("data_table","Upload data:", accept = c("csv","xlsx","xls")),
                  
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
-                   fileInput("name_file","Names correction", accept = c("xlsx","xls"))), selected = T),
+                   fileInput("name_file","Names correction", accept = c("xlsx","xls")))),
         
         ### Quality Control ###
         menuItem("Quality Control",tabName = "qc",icon=icon("chart-bar"), expandedName = "qc",
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
-                   uiOutput("fil_qc"),
+                   uiOutput("fil_qc"), 
                    uiOutput("qc_kon"),
                    actionButton("dp","Make Quality Raincloud")
                  )),
@@ -133,6 +130,12 @@ ui <- fluidPage(
       ),
 
       ### Quality Control ###
+      
+      conditionalPanel(
+        condition="output.dataFileLoad==true && input.sidebarItemExpanded=='qc'&&
+        output.dp == 1",
+        uiOutput("qc_tabs_filter")),
+      
       conditionalPanel(
         condition="output.dataFileLoad==true && input.sidebarItemExpanded=='qc'",
         uiOutput("qc_tabs")),
@@ -189,15 +192,35 @@ ui <- fluidPage(
 
 ####################################### Server ###########################################
 
-### Get Dataset ###
 server<-function(input, output,session) {
-  OASIS <<- NULL
   
+  OASIS <<- NULL
+
+  ### Get Dataset ###  
   get_data_file <- reactive({
-    input$data_table
     saving <<- 
     if(!is.null(input$data_table)){
-      OASIS <<- read_excel(input$data_table[["datapath"]])
+      if(input$check_old_new_data == FALSE){
+        
+        lh <- read.delim(input$data_tablelh[["datapath"]])
+        lh$BrainSegVolNotVent <- NULL
+        lh$eTIV <- NULL
+        rh <- read.delim(input$data_tablerh[["datapath"]])
+        rh$BrainSegVolNotVent <- NULL
+        rh$eTIV <- NULL
+        
+        demographics <- read.csv(input$data_table[["datapath"]])
+        OASIS <- cbind(demographics, lh, rh)
+        OASIS$lh.aparc.a2009s.thickness <- NULL
+        OASIS$lh_MeanThickness_thickness <- NULL
+        OASIS$rh.aparc.a2009s.thickness <- NULL
+        OASIS$rh_MeanThickness_thickness <- NULL
+        colnames(OASIS)[1] <- "ID"} 
+      else{
+        OASIS <<- read_excel(input$data_table[["datapath"]]) 
+      }
+      
+      OASIS <<- OASIS
       return(TRUE)
     }else{
       # OASIS <<- read_excel("OASIS_behavioral.xlsx")
@@ -206,6 +229,7 @@ server<-function(input, output,session) {
     }
   })
   
+  ### output.dataFileLoad - Constant to check if data are loaded ###
   output$dataFileLoad <- reactive({
     return(get_data_file())
   })
@@ -215,7 +239,7 @@ server<-function(input, output,session) {
   
   ##################################### Data preprocess ##################################
 
-  ### Transform the names of OASIS ###
+  ### Transform the names of OASIS and get the data ###
   get_oasis <- reactive({
     is.null(input$data_table)
     if(!is.null(input$name_file)){
@@ -236,9 +260,7 @@ server<-function(input, output,session) {
     input$fil_com
   })
   
-  get_qc_fil <- reactive({
-    input$qc_fil
-  })
+  
   
   get_ss_fil <- reactive({
     input$ss_fil
@@ -292,31 +314,7 @@ server<-function(input, output,session) {
     }
   })
   
-  ### Sidebar for Quality Control ###
-  output$fil_qc <- renderUI({
-    
-    input$name_file
-    tagList(
-      selectInput("qc_fil",label = "Filter",
-                  choices = names(get_oasis())[-1],multiple = TRUE))
-  })
   
-  ### Sidebar for Quality Control ###
-  output$qc_kon <- renderUI({
-    x <- NULL
-    for (ff in get_qc_fil()) {
-      x <- append(x,list(
-        render.ui.output(ff,get_oasis()[[ff]],input[[paste0(ff,"_qc")]],ui_type="_qc")
-      ))
-    }
-    if(input$data_type=="Others"){
-      x <- append(x,list(
-        selectInput("qc_col","Selected Cols to RainCloud",selected = NULL,multiple = TRUE,
-                    choices = c("All",names(get_qc_choice())))
-      ))
-    }
-    return(x)
-  })
   
   ### ###
   output$fil_ss <- renderUI({
@@ -345,9 +343,9 @@ server<-function(input, output,session) {
     }else if(input$data_type=="CERES"){
       explans <- dplyr::select(OASIS,1:(cols-274))
       names_explan <- get.regression.col(explans)
-    }else{
-      names_explan <- names(OASIS)
-    }
+    }#else{
+    #  names_explan <- names(OASIS)
+    #}
     
     return(names_explan)
   })  
@@ -380,15 +378,7 @@ server<-function(input, output,session) {
     return(u_oasis)
   })
   
-  get_qc_choice <- reactive({    # get the select col and return the selected date
-    col_input <- get_qc_fil()
-    u_oasis <- get_oasis()
-    
-    for (col in col_input) {
-      u_oasis <- get.choice(col,data.table =u_oasis,seletedValue = input[[paste0(col,"_qc")]],col.type = "_qc")
-    }
-    return(u_oasis)
-  })
+  
   
   get_ss_choice <- reactive({    # get the select col and return the selected date
     col_input <- get_ss_fil()
@@ -492,9 +482,9 @@ server<-function(input, output,session) {
     
     x <- append(x,list(selectInput("explan",label="Explanatory variable",choices = get_explan_names())))
     
-    if(input$data_type=="Others"){
-      x <- append(x,list(selectInput("explan_2",label="Data variable",choices = get_explan_names())))
-    }
+    # if(input$data_type=="Others"){
+    #   x <- append(x,list(selectInput("explan_2",label="Data variable",choices = get_explan_names())))
+    # }
     return(x)
   })
   
@@ -532,9 +522,9 @@ server<-function(input, output,session) {
     }
     
     x <- append(x,list(selectInput("lasso_variable",label="Explanatory variable",choices = get_explan_names())))
-    if(input$data_type=="Others"){
-      x <- append(x,list(selectInput("lasso_variable_2",label="Data variable",choices = get_explan_names(),multiple = TRUE)))
-    }
+    # if(input$data_type=="Others"){
+    #   x <- append(x,list(selectInput("lasso_variable_2",label="Data variable",choices = get_explan_names(),multiple = TRUE)))
+    # }
     return(x)
   })
   
@@ -579,11 +569,7 @@ server<-function(input, output,session) {
             "SEM" =  "sem")
   })
   
-  ### ###
-  output$qc_table<- DT::renderDataTable({
-    ausgewaehlte_daten <- get_qc_choice()
-    DT::datatable(ausgewaehlte_daten,class = "display nowrap",options = list(scrollX=TRUE))
-  })
+
   
   ### ###
   output$ds_table<- DT::renderDataTable({
@@ -888,23 +874,62 @@ server<-function(input, output,session) {
     
   })
   
-  ### ouput Quality Control ###
-  ### ###
+  ########################################## Quality Control #############################
+  ### Sidebar for Quality Control ###
+  output$fil_qc <- renderUI({
+    
+    input$name_file
+    tagList(selectInput("qc_fil",label = "Filter", choices = names(get_oasis())[-1], multiple = TRUE))
+  })
+  
+  ### Filter for the Rainbow Plot ###
+  output$qc_tabs_filter <- renderUI({
+    
+    input$name_file
+    tagList(selectInput("qc_fil",label = "Filter", choices = names(get_oasis())[-1], multiple = TRUE))
+  })
+  
+  ### Get the selected values
+  get_qc_fil <- reactive({
+    input$qc_fil
+  })
+  
+  ### Sidebar for Quality Control ###
+  output$qc_kon <- renderUI({
+    x <- NULL
+    for (selected_values in get_qc_fil()) {
+      x <- append(x,list(
+        render.ui.output(selected_values,get_oasis()[[selected_values]],
+                         input[[paste0(selected_values,"_qc")]],ui_type="_qc")
+      ))
+    }
+    # if(input$data_type=="Others"){
+    #   x <- append(x,list(
+    #     selectInput("qc_col","Selected Cols to RainCloud",selected = NULL,multiple = TRUE,
+    #                 choices = c("All",names(get_qc_choice())))
+    #   ))
+    # }
+    return(x)
+  })
+  
+  ### Get the selected values and the selected data
+  get_qc_choice <- reactive({   
+    col_input <- get_qc_fil()
+    u_oasis <- get_oasis()
+    
+    for (col in col_input) {
+      u_oasis <- get.choice(col,data.table = u_oasis,seletedValue = input[[paste0(col,"_qc")]],
+                            col.type = "_qc")
+    }
+    return(u_oasis)
+  })
+  
+  ### Update Tabs after Button Click ###
   observeEvent(input$dp,{
     updateTabsetPanel(session,"qc_tab","Quality Raincloud")
   })
   
-  ### ###
-  observeEvent(input$rp,{
-    updateTabsetPanel(session,"ss_tab","Regression Plots")
-  })
-  
-  ### ###
-  observeEvent(input$lp,{
-    updateTabsetPanel(session,"ls_tab","Lasso tabel")
-  })
-  
-  ### ###
+  ### Quality Control - Plot after Clicking the Button ###
   output$quality <- renderPlot({
     if(is.null(input$dp) || input$dp==0){return(NULL)}
     
@@ -944,13 +969,19 @@ server<-function(input, output,session) {
         qc.cols <- ncol(data)
         qc.data <- data[(qc.cols-273):qc.cols]
         p <- get.ceres.qc.plot(qc.data)
-      }else{
-        data <- get_qc_choice()
-        cols <- input$qc_col
-        p <- get.other.qc.plot(data,cols)
-      }
+      }#else{
+      #  data <- get_qc_choice()
+      #  cols <- input$qc_col
+      #  p <- get.other.qc.plot(data,cols)
+      #}
       return(p)
     })
+  })
+  
+  ### Quality Control - Table ###
+  output$qc_table<- DT::renderDataTable({
+    ausgewaehlte_daten <- get_qc_choice()
+    DT::datatable(ausgewaehlte_daten,class = "display nowrap",options = list(scrollX=TRUE))
   })
   
   ### Mainbody Quality Control ###
@@ -962,12 +993,24 @@ server<-function(input, output,session) {
                     tabPanel("Quality Raincloud",plotOutput("quality",height = "7500px",width = "1300px"))
                   }else if(input$data_type=="CERES"){
                     tabPanel("Quality Raincloud",plotOutput("quality",height = "8500px",width = "1500px"))
-                  }else{
-                    tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),
-                                                            width = "1300px"))
-                  }
+                  }#else{
+                  #  tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),
+                   #                                         width = "1300px"))
+                  #}
       )
     )
+  })
+  
+  ########################################################################################
+  
+  ### ###
+  observeEvent(input$rp,{
+    updateTabsetPanel(session,"ss_tab","Regression Plots")
+  })
+  
+  ### ###
+  observeEvent(input$lp,{
+    updateTabsetPanel(session,"ls_tab","Lasso tabel")
   })
   
   ### ###
