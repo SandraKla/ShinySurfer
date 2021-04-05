@@ -10,7 +10,6 @@ lapply(file.source, source,.GlobalEnv)
 file.source=list.files("R",pattern="*.R",full.names = TRUE)
 lapply(file.source, source,.GlobalEnv)
 load("desterieux_3d.rda")
-
 source("geom_flat_violin.R")
 
 ####################################### User Interface ###################################
@@ -27,11 +26,11 @@ ui <- fluidPage(
         ### Start ###
         menuItem("Start",tabName = "updata", icon = icon("home"), selected = T,
                  prettyRadioButtons("data_type",label = "Data File Type", inline = T,
-                                    choices = c("FreeSurfer","CERES")), #"Others")),
+                                    choices = c("FreeSurfer","CERES (not available)")), #,"CERES","Others")),
                  checkboxInput("check_old_new_data", label = "Old data format", value = FALSE),
-                 fileInput("data_tablelh","Freesurfer - LH (only new format)",accept = c("txt")),
-                 fileInput("data_tablerh","Freesurfer - RH (only new format)",accept = c("txt")),
-                 fileInput("data_table","Upload data:", accept = c("csv","xlsx","xls")),
+                 fileInput("data_tablelh","Freesurfer - Left hemisphere",accept = c("txt")),
+                 fileInput("data_tablerh","Freesurfer - Right hemisphere",accept = c("txt")),
+                 fileInput("data_table","Upload demographics data or old format:", accept = c("csv","xlsx","xls")),
                  
                  conditionalPanel(
                    condition="output.dataFileLoad==true",
@@ -215,9 +214,10 @@ server<-function(input, output,session) {
         OASIS$lh_MeanThickness_thickness <- NULL
         OASIS$rh.aparc.a2009s.thickness <- NULL
         OASIS$rh_MeanThickness_thickness <- NULL
-        colnames(OASIS)[1] <- "ID"} 
+        colnames(OASIS)[1] <- "ID"
+      } 
       else{
-        OASIS <<- read_excel(input$data_table[["datapath"]]) 
+        OASIS <- read_excel(input$data_table[["datapath"]])
       }
       
       OASIS <<- OASIS
@@ -259,8 +259,6 @@ server<-function(input, output,session) {
   get_fil_com <- reactive({
     input$fil_com
   })
-  
-  
   
   get_ss_fil <- reactive({
     input$ss_fil
@@ -346,7 +344,6 @@ server<-function(input, output,session) {
     }#else{
     #  names_explan <- names(OASIS)
     #}
-    
     return(names_explan)
   })  
   
@@ -568,8 +565,6 @@ server<-function(input, output,session) {
             "SD" = "sd",
             "SEM" =  "sem")
   })
-  
-
   
   ### ###
   output$ds_table<- DT::renderDataTable({
