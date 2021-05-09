@@ -25,8 +25,8 @@ ui <- fluidPage(
         
         ### Start ###
         menuItem("Start",tabName = "updata", icon = icon("home"), selected = T,
-                 prettyRadioButtons("data_type",label = "Data File Type", inline = T,
-                                    choices = c("FreeSurfer","CERES (not available)")), #,"CERES","Others")),
+                 prettyRadioButtons("data_type",label = "Data File Type:", inline = T,
+                                    choices = c("FreeSurfer")), #,"CERES","Others")),
                  checkboxInput("check_old_new_data", label = "Old data format", value = FALSE),
                  fileInput("data_tablelh","Freesurfer - Left hemisphere",accept = c("txt")),
                  fileInput("data_tablerh","Freesurfer - Right hemisphere",accept = c("txt")),
@@ -194,12 +194,14 @@ ui <- fluidPage(
 server<-function(input, output,session) {
   
   OASIS <<- NULL
+  options(shiny.sanitize.errors = TRUE)
 
   ### Get Dataset ###  
   get_data_file <- reactive({
     saving <<- 
     if(!is.null(input$data_table)){
-      if(input$check_old_new_data == FALSE){
+      if(input$check_old_new_data == FALSE && !is.null(input$data_tablelh) &&
+         !is.null(input$data_tablerh)) {
         
         lh <- read.delim(input$data_tablelh[["datapath"]])
         lh$BrainSegVolNotVent <- NULL
@@ -721,7 +723,7 @@ server<-function(input, output,session) {
       auswahl_data <- auswahl_data%>%mutate_if(is.numeric,round,4)
     }
     
-    auswahl_data[[" "]] <- paste(auswahl_data$area,", Wert ist ",auswahl_data$wert)
+    auswahl_data[[" "]] <- paste(auswahl_data$area,"= ",auswahl_data$wert, " mm")
     return(auswahl_data)
   })
   
