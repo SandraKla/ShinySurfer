@@ -1,4 +1,4 @@
-# __ShinySurfer__ Software tool for the Analysis and Visualization of MRI images of the brain
+# __ShinySurfer__: Software tool for the Analysis and Visualization of MRI images of the brain
 
 <img src="www/example.png" align="center"/>
 
