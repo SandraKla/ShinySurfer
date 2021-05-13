@@ -15,6 +15,6 @@ get.regression.col <- function(dat){
       }
   }
   dat <- select(dat,-not.regression.col)
-  #return(names(dat))
-  return("age")
+  dat[dat != "ID"];
+  return(names(dat))
 }

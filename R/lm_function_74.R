@@ -66,7 +66,7 @@ add_lm_trace_freesurfer <- function(data,var_explan="reaction_time"){
       stat_smooth(method=lm, level=0.95) +
       xlab(explan)+
       ylab("thickness (mm)")+
-      theme_minimal()
+      theme_light()
     p <- c(p,list(p1))
   }
   return(multiplot(plotlist = p,cols = 1))

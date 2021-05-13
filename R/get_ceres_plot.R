@@ -136,7 +136,7 @@ get.plot <- function(data,area.label=NULL,add.xlabel=FALSE,fill.col="red"){
     geom_point(position = position_jitter(width=.1),size=.2,aes(color=area),show.legend = FALSE,color=fill.col)+
     geom_boxplot(aes(x=as.numeric(area)+0.2,y=thickness),outlier.shape = NA,alpha=0.3,width=0.1,color="BLACK")+
     coord_flip()+
-    theme_cowplot()+
+    theme_light()+
     ylab(data.melt$lr)+
     theme(axis.text.y=element_blank())+
     guides(fill=FALSE)
