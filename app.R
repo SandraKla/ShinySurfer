@@ -25,16 +25,14 @@ ui <- fluidPage(
         
         ### Start ###
         menuItem("Start",tabName = "updata", icon = icon("home"), selected = T,
-                 prettyRadioButtons("data_type",label = "Data File Type:", inline = T,
-                                    choices = c("FreeSurfer")), #,"CERES","Others")),
-                 checkboxInput("check_old_new_data", label = "Old data format", value = FALSE),
-                 fileInput("data_tablelh","Freesurfer - Left hemisphere",accept = c("txt")),
-                 fileInput("data_tablerh","Freesurfer - Right hemisphere",accept = c("txt")),
-                 fileInput("data_table","Upload demographics data or old format:", accept = c("csv","xlsx","xls")),
+                 # checkboxInput("check_old_new_data", label = "Old data format", value = FALSE),
+                 fileInput("data_tablelh","Freesurfer - Left hemisphere:",accept = c("txt")),
+                 fileInput("data_tablerh","Freesurfer - Right hemisphere:",accept = c("txt")),
+                 fileInput("data_table","Upload demographics data:", accept = c("csv","xlsx","xls"))),
                  
-                 conditionalPanel(
-                   condition="output.dataFileLoad==true",
-                   fileInput("name_file","Names correction", accept = c("xlsx","xls")))),
+                 # conditionalPanel(
+                 #   condition="output.dataFileLoad==true",
+                 #   fileInput("name_file","Names correction:", accept = c("xlsx","xls")))),
         
         ### Quality Control ###
         menuItem("Quality Control",tabName = "qc",icon=icon("chart-bar"), expandedName = "qc",
@@ -48,23 +46,25 @@ ui <- fluidPage(
         ### Descriptive Statistics ###
         menuItem("Descriptive Statistics",expandedName = "ds",icon=icon("brain"),
                  conditionalPanel(
-                   condition="output.dataFileLoad==true && input.data_type=='FreeSurfer'",
+                   condition="output.dataFileLoad==true",
                    uiOutput("fil_ui"),
                    uiOutput("ds_kon"),
+                   
+                   checkboxInput("com","Selection of all records",value = TRUE),
                    
                    conditionalPanel(
                      condition = "input.com==1",
                      uiOutput("com_cd")
-                   ),
-    
+                   ), hr(),
+                   
                    prettyRadioButtons(inputId = "select_hemisphere",
-                                      label = "Choose Hemisphere",
+                                      label = "Choose Hemisphere:",
                                       choices = c("left","right","both"),
                                       selected = "both",inline = TRUE),
                    
                    checkboxInput("col","Color and Value", value = FALSE),
                    
-                   checkboxInput("com","Composity",value = TRUE),
+
                    #checkboxInput("check_download","Download",FALSE),
                    
                    actionButton("ab","Brain Map")
@@ -130,14 +130,25 @@ ui <- fluidPage(
 
       ### Quality Control ###
       
-      conditionalPanel(
-        condition="output.dataFileLoad==true && input.sidebarItemExpanded=='qc'&&
-        output.dp == 1",
-        uiOutput("qc_tabs_filter")),
+      # conditionalPanel(
+      #   condition="output.dataFileLoad==true && input.sidebarItemExpanded=='qc'&&
+      #   output.dp == 1",
+      #   uiOutput("qc_tabs_filter")),
       
       conditionalPanel(
         condition="output.dataFileLoad==true && input.sidebarItemExpanded=='qc'",
         uiOutput("qc_tabs")),
+      
+      ### Descriptive Statistics ###
+      conditionalPanel(
+        condition="output.dataFileLoad==true && input.sidebarItemExpanded=='ds'",
+        tabsetPanel(
+          type="tabs",id="ds_tab",
+          tabPanel("Table",DT::dataTableOutput("ds_table")),
+          tabPanel("Statistics",DT::dataTableOutput("ds_composity")),
+          tabPanel("3D",plotlyOutput("ggseg3d",height = "700px"))
+        )
+      ),
       
       ### Descriptive Statistics ###
       conditionalPanel(condition="input.col==1 && input.sidebarItemExpanded=='ds'",
@@ -152,17 +163,6 @@ ui <- fluidPage(
                                     1.5),
                        actionButton("add_mitte", "Add new values and colors"),
                        actionButton("remove_mitte","Remove")
-      ),
-      
-      ### Descriptive Statistics ###
-      conditionalPanel(
-        condition="output.dataFileLoad==true && input.sidebarItemExpanded=='ds' && input.data_type=='FreeSurfer'",
-        tabsetPanel(
-          type="tabs",id="ds_tab",
-          tabPanel("Table",DT::dataTableOutput("ds_table")),
-          tabPanel("Statistics",DT::dataTableOutput("ds_composity")),
-          tabPanel("3D",plotlyOutput("ggseg3d",height = "700px"))
-        )
       ),
       
       ### Linear Regression ###
@@ -199,9 +199,7 @@ server<-function(input, output,session) {
   ### Get Dataset ###  
   get_data_file <- reactive({
     saving <<- 
-    if(!is.null(input$data_table)){
-      if(input$check_old_new_data == FALSE && !is.null(input$data_tablelh) &&
-         !is.null(input$data_tablerh)) {
+      if(!is.null(input$data_tablelh) && !is.null(input$data_tablerh)) {
         
         lh <- read.delim(input$data_tablelh[["datapath"]])
         lh$BrainSegVolNotVent <- NULL
@@ -210,21 +208,29 @@ server<-function(input, output,session) {
         rh$BrainSegVolNotVent <- NULL
         rh$eTIV <- NULL
         
-        demographics <- read.csv(input$data_table[["datapath"]])
-        OASIS <- cbind(demographics, lh, rh)
-        OASIS$lh.aparc.a2009s.thickness <- NULL
-        OASIS$lh_MeanThickness_thickness <- NULL
-        OASIS$rh.aparc.a2009s.thickness <- NULL
-        OASIS$rh_MeanThickness_thickness <- NULL
-        colnames(OASIS)[1] <- "ID"
-      } 
-      else{
-        OASIS <- read_excel(input$data_table[["datapath"]])
+        if(!is.null(input$data_table)){
+          demographics <- read.csv(input$data_table[["datapath"]])
+          OASIS <- cbind(demographics, lh, rh)
+          OASIS$lh.aparc.a2009s.thickness <- NULL
+          OASIS$lh_MeanThickness_thickness <- NULL
+          OASIS$rh.aparc.a2009s.thickness <- NULL
+          OASIS$rh_MeanThickness_thickness <- NULL
+          colnames(OASIS)[1] <- "ID"
+          }
+        else{
+          OASIS <- cbind(lh, rh)
+          OASIS$lh.aparc.a2009s.thickness <- NULL
+          OASIS$lh_MeanThickness_thickness <- NULL
+          OASIS$rh.aparc.a2009s.thickness <- NULL
+          OASIS$rh_MeanThickness_thickness <- NULL
+          id <- rownames(OASIS)
+          OASIS <- cbind(id=id, OASIS)
+          colnames(OASIS)[1] <- "ID"
+        }
+        OASIS <<- OASIS
+        return(TRUE)
       }
-      
-      OASIS <<- OASIS
-      return(TRUE)
-    }else{
+    else{
       # OASIS <<- read_excel("OASIS_behavioral.xlsx")
       # return(TRUE)
       return(FALSE)
@@ -243,7 +249,7 @@ server<-function(input, output,session) {
 
   ### Transform the names of OASIS and get the data ###
   get_oasis <- reactive({
-    is.null(input$data_table)
+    is.null(input$data_tablelh)
     if(!is.null(input$name_file)){
       area <- read_excel(input$name_file[["datapath"]],col_names = FALSE)
       return(oasis.tidy(session,area,OASIS))
@@ -334,25 +340,25 @@ server<-function(input, output,session) {
   
   ### get the explan names
   get_explan_names <- reactive({
-    input$data_table
-    input$data_type
+    input$data_tablelh
+    data_type <- "" # data_type = "FreeSurfer"
     cols <- ncol(OASIS)
-    if(input$data_type=="FreeSurfer"){
+    if(data_type=="FreeSurfer"){
       explans <- dplyr::select(OASIS,-(cols-147):-cols)
       names_explan <- get.regression.col(explans)
-    }else if(input$data_type=="CERES"){
+    }else if(data_type=="CERES"){
       explans <- dplyr::select(OASIS,1:(cols-274))
       names_explan <- get.regression.col(explans)
-    }#else{
-    #  names_explan <- names(OASIS)
-    #}
+    }else{
+      names_explan <- names(OASIS)
+    }
     return(names_explan)
   })  
   
   ##### Filtering #####
   ### filter the data from according to selected condition ###
   get_choice <- reactive({    # get the select col and return the selected date
-    input$data_table
+    input$data_tablelh
     col_input <- get_fil()
     col_com_input <- get_fil_com()
     u_oasis <- get_oasis()
@@ -519,8 +525,11 @@ server<-function(input, output,session) {
       #   }
       # ))
     }
-    
-    x <- append(x,list(selectInput("lasso_variable",label="Explanatory variable",choices = get_explan_names())))
+    names_explan <- get_explan_names()
+    names_explan <- names_explan[names_explan != "sex"];
+    names_explan <- names_explan[names_explan != "Sex"];
+    names_explan <- names_explan[names_explan != "ID"];
+    x <- append(x,list(selectInput("lasso_variable",label="Explanatory variable",choices = names_explan)))
     # if(input$data_type=="Others"){
     #   x <- append(x,list(selectInput("lasso_variable_2",label="Data variable",choices = get_explan_names(),multiple = TRUE)))
     # }
@@ -530,8 +539,8 @@ server<-function(input, output,session) {
   ### get the composite way ###
   output$com_cd <- renderUI({
     tagList(
-      prettyRadioButtons("com_way_c",label = "Central tendency",choices = c("mean","median"),inline = TRUE),
-      prettyRadioButtons("com_way_d",label = "Dispersion",choices = c("SD","SEM"),selected = character(0),inline = TRUE)
+      prettyRadioButtons("com_way_c",label = "Central tendency:",choices = c("mean","median"),inline = TRUE),
+      prettyRadioButtons("com_way_d",label = "Dispersion:",choices = c("SD","SEM"),selected = character(0),inline = TRUE)
     )
   })
   
@@ -691,8 +700,8 @@ server<-function(input, output,session) {
     auswahl_area <- get_choice()
     cols <- ncol(auswahl_area)
     if(nrow(auswahl_area)==0){
-      showModal(modalDialog(title = "INPUT ERROR",
-                            "The inputed date is empty",
+      showModal(modalDialog(title = "INFORMATION",
+                            "The inputed data is empty",
                             easyClose = TRUE))
       return(NULL)
     }
@@ -702,8 +711,10 @@ server<-function(input, output,session) {
     if (nrow(get_choice())==1) {
       
     }else if(input$com==0){
-      showModal(modalDialog(title = "INPUT ERROR",
-                            "The inputed date should be one line or composite display selected",
+      showModal(modalDialog(title = "INFORMATION",
+                            "If you turn off the Selection of all records-Setting, 
+                            you must select an element of your choice under Filter to make 
+                            a BrainMap!",
                             easyClose = TRUE))
       return(NULL)
     }
@@ -915,8 +926,7 @@ server<-function(input, output,session) {
     u_oasis <- get_oasis()
     
     for (col in col_input) {
-      u_oasis <- get.choice(col,data.table = u_oasis,seletedValue = input[[paste0(col,"_qc")]],
-                            col.type = "_qc")
+      u_oasis <- get.choice(col,data.table = u_oasis,seletedValue = input[[paste0(col,"_qc")]], col.type = "_qc")
     }
     return(u_oasis)
   })
@@ -933,7 +943,8 @@ server<-function(input, output,session) {
     isolate({
       data <- get_qc_choice()
       cols <- ncol(data)
-      if(input$data_type=="FreeSurfer"){
+      data_type <- "FreeSurfer"
+      if(data_type=="FreeSurfer"){
         data <- data[(cols-147):cols]
         name_level <- names(data)
         data <- melt(data)
@@ -958,10 +969,10 @@ server<-function(input, output,session) {
           geom_boxplot(aes(x=as.numeric(area)+0.2,y=thickness),outlier.shape = NA,alpha=0.3,width=0.1,color="BLACK")+
           coord_flip()+
           facet_wrap(~lr)+
-          theme_cowplot()+
+          theme_light()+
           guides(fill=FALSE)
         
-      }else if(input$data_type=="CERES"){
+      }else if(data_type=="CERES"){
         data <- get_qc_choice()
         qc.cols <- ncol(data)
         qc.data <- data[(qc.cols-273):qc.cols]
@@ -983,12 +994,14 @@ server<-function(input, output,session) {
   
   ### Mainbody Quality Control ###
   output$qc_tabs <- renderUI({
+    
+    data_type <-"FreeSurfer"
     tagList(
       tabsetPanel(type="tabs",id="qc_tab",
                   tabPanel("Table",DT::dataTableOutput("qc_table")),
-                  if(input$data_type=="FreeSurfer"){
+                  if(data_type=="FreeSurfer"){
                     tabPanel("Quality Raincloud",plotOutput("quality",height = "7500px",width = "1300px"))
-                  }else if(input$data_type=="CERES"){
+                  }else if(data_type=="CERES"){
                     tabPanel("Quality Raincloud",plotOutput("quality",height = "8500px",width = "1500px"))
                   }#else{
                   #  tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),
@@ -1012,12 +1025,13 @@ server<-function(input, output,session) {
   
   ### ###
   output$ss_tabs <- renderUI({
+    data_type <- "FreeSurfer"
     tagList(
       tabsetPanel(type="tabs",id="ss_tab",
                   tabPanel("Table",DT::dataTableOutput("ss_table")),
-                  if(input$data_type=="FreeSurfer"){
+                  if(data_type=="FreeSurfer"){
                     tabPanel("Regression Plots",plotOutput("regression",height ="40000px",width = "1000px"))
-                  }else if(input$data_type=="CERES"){
+                  }else if(data_type=="CERES"){
                     tabPanel("Regression Plots",plotOutput("regression",height = "59000px",width = "1500px"))
                   }else{
                     # tabPanel("Quality Raincloud",plotOutput("quality",height = 
@@ -1038,14 +1052,16 @@ server<-function(input, output,session) {
     isolate({
       data <- get_ss_choice()
       cols <- ncol(data)
+      data_type <- "FreeSurfer"
       var_explan <- as.character(input$explan)
-      if(input$data_type=="FreeSurfer"){
+      if(data_type=="FreeSurfer"){
         p <- add_lm_trace_freesurfer(data,var_explan)
-      }else if(input$data_type=="CERES"){
+      }else if(data_type=="CERES"){
         p <- get.ceres.lm.plots(data,var_explan)
       }else{
         p <- ggplot(OASIS,aes_string(x=input$explan,y=input$explan_2))+
           geom_point()+
+          theme_light()+
           stat_smooth(method = lm,level = 0.95)
       }
       return(p)
@@ -1059,10 +1075,10 @@ server<-function(input, output,session) {
     dat<-get_ls_choice()
     col.length <- length(dat)
     count_lasso<-which(names(dat)==input$lasso_variable)
-    
-    if(input$data_type=="FreeSurfer"){
+    data_type = "FreeSurfer"
+    if(data_type=="FreeSurfer"){
       dat <- select(dat,input$lasso_variable,(col.length-147):col.length)
-    }else if(input$data_type=="CERES"){
+    }else if(data_type=="CERES"){
       dat <- select(dat,input$lasso_variable,(col.length-273):col.length)
     }else{
       dat <- select(dat,input$lasso_variable,input$lasso_variable_2)
