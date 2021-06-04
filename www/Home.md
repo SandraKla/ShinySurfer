@@ -1,20 +1,23 @@
-# __ShinySurfer__ - Software tool for the Analysis and Visualization of MRI images of the brain
+## __ShinySurfer__ - Software tool for the Analysis and Visualization of MRI images of the brain
 
-### Load data with the old format
+#### Start
+Load .txt files created by [FreeSurfer](https://freesurfer.net) using the [aparcstats2table](https://surfer.nmr.mgh.harvard.edu/fswiki/aparcstats2table) command for the left and right hemisphere. In these files each line represents an individual participant and each column represents the mean value for a cortical area (cortical thickness, volume, area, or curvature). At present, ShinySurfer only accepts data files based on the brain parcellation developed by C. Destrieux et al. ( [Neuroimage 2010;53:1-15](https://www.sciencedirect.com/science/article/abs/pii/S1053811910008542)). You may also load a .csv file containing additional information for each participant, such as sex, age or clinical information. Example datasets can be found at [GitHub](https://github.com/SandraKla/ShinySurfer/tree/master/example%20data). 
 
-The file must be in .xls or .xlsx format (see OASIS.xlsx). And the check-button "Old data format" must be activated! The data order of the columns is ID, sex, age. The remaining columns are 74 regions of the left hemisphere and 74 regions of the right hemisphere. All column names must exist, but related data can be null. In this OASIS data set, there are 300 data sets in total.
+#### Quality Control
+The data files are combined and displayed as one table on the right. In the table you may sort all variables in ascending or descending order by clicking on the small arrows after each variable name.
+After clicking on __Raincloud Plot__, ShinySurfer produces raincloud plots for all cortical areas in a new tab based on code provided by M. Allen et al. ( [Wellcome Open Res 2021;4:63](https://wellcomeopenresearch.org/articles/4-63/v2)). The raincloud plots combine a dot plot of raw data, a plot of probability density, and a box plot, showing the median and the quartiles. Before creating raincloud plots, you may filter your dataset based on every variable in the table to display subsets of your data.
 
-### New format
+#### Descriptive Statistics
+After clicking on __Brain Map__, ShinySurfer displays the central tendency (mean or median) or dispersion (standard deviation or standard error of the mean) on a semi-inflated 3D standard brain using code provided by A. Mowinckel et al. ( [Adv Methods Pract Psychol Sci 2020;3:466-483](https://journals.sagepub.com/doi/full/10.1177/2515245920928009)). When you move the pointer inside the Brain Map tab, a toolbar appears in the right upper corner, allowing you to zoom, pan, and rotate the brain model. Before creating the 3D brain map, you may filter your dataset based on every variable in the table to display subsets of your data.
 
-The .txt files obtained after analysis in Freesurfer can be immediately used further in the Shiny app (see a2009s_thickness_lh.txt and a2009s_thickness_rh.txt). The check-button "Old data format" should not be activated this time! The file demograhics.csv has additional information about the patients (like gender and age).
+#### Linear Regression
+After clicking on __Regression Plots__, ShinySurfer creates scatter plots for every cortical area with the cortical parameter on the y-axis and the chosen explanatory variable on the x-axis. ShinySurfer also displays the linear regression line and the 95% confidence interval of the regression line.
 
-### Names Correction (only old format)
+#### Lasso Regression
+ShinySurfer is able to perform a bootstrapped lasso (least absolute shrinkage and selection operator) regression analysis for variable selection ( [Tibshirani 1996](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/j.2517-6161.1996.tb02080.x)). After choosing the explanatory variable and clicking on __Lasso Regression__, ShinySurfer creates a table containing all cortical areas. The table lists the proportion of all non-zero regression coefficients after 1000 bootstraps. In addition, the table states if all regression coefficients for a given cortical area were positive or negative (true).
 
-Different users have different names for the same brain region, so in this Shiny App you can import a file for this. The file must be also in .xls or .xlsx format. You can customize the brain region name to the name you want with the template areas.xlsx. In this file, the left column is the original name of the region 
-(do not change) and in the right column is the user-defined name. Use for this the Names correction file input.
+#### Restart
+To restart ShinySurfer click on Restart.
 
-### Functions
-
-You can filter the columns and information as you wish. To restart the Shiny App use the Restart-Button. After the data has been loaded, the following functions are available: Quality Control with Raincloud Plots, Descriptive Statistics with the Brain Map, Linear and Lasso Regression. 
-
+#### Documentation
 For more information use the [Homepage](https://sandrakla.github.io/ShinySurfer_Homepage/).
