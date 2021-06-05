@@ -26,7 +26,7 @@ library(shiny)
 runGitHub("ShinySurfer", "SandraKla")
 ```
 
-All required packages must be downloaded before starting this app. For more information about the required packages use the [Homepage](https://sandrakla.github.io/ShinySurfer_Homepage/about.html).
+All required packages must be downloaded before starting this app. For more information about the required packages use the [Homepage](https://sandrakla.github.io/ShinySurfer_Homepage/about.html). Submit suggestions and bugs at https://github.com/SandraKla/ShinySurfer/issues.
 
 ### Citation:
 
