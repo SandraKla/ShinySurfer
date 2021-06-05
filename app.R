@@ -40,7 +40,7 @@ ui <- fluidPage(
                    condition="output.dataFileLoad==true",
                    uiOutput("fil_qc"), 
                    uiOutput("qc_kon"),
-                   actionButton("dp","Make Quality Raincloud")
+                   actionButton("dp","Raincloud Plot")
                  )),
         
         ### Descriptive Statistics ###
@@ -95,7 +95,7 @@ ui <- fluidPage(
                    condition="output.dataFileLoad==true",
                    uiOutput("fil_ss"),
                    uiOutput("ss_kon"),
-                   actionButton("rp","Regression Plots")
+                   actionButton("rp","Regression Plot")
                  )
         ),
         
@@ -105,7 +105,7 @@ ui <- fluidPage(
                    condition="output.dataFileLoad==true",
                    uiOutput("fil_ls"),
                    uiOutput("ls_kon"),
-                   actionButton("lp","TableLasso generation")
+                   actionButton("lp","Lasso Regression")
                  )
         ),
         
@@ -145,8 +145,8 @@ ui <- fluidPage(
         tabsetPanel(
           type="tabs",id="ds_tab",
           tabPanel("Table",DT::dataTableOutput("ds_table")),
-          tabPanel("Statistics",DT::dataTableOutput("ds_composity")),
-          tabPanel("3D",plotlyOutput("ggseg3d",height = "700px"))
+          tabPanel("Descriptive Statistics",DT::dataTableOutput("ds_composity")),
+          tabPanel("Brain Map",plotlyOutput("ggseg3d",height = "700px"))
         )
       ),
       
@@ -182,7 +182,7 @@ ui <- fluidPage(
         tabsetPanel(
           type="tabs",id="ls_tab",
           tabPanel("Table",DT::dataTableOutput("ls_table")),
-          tabPanel("Lasso tabel",DT::dataTableOutput("lasso_table"))
+          tabPanel("Lasso Regression",DT::dataTableOutput("lasso_table"))
         )
       )
     )
@@ -814,7 +814,7 @@ server<-function(input, output,session) {
   
   ### ###
   observeEvent(input$ab,{
-    updateTabsetPanel(session,"ds_tab",selected = "3D")
+    updateTabsetPanel(session,"ds_tab",selected = "Brain Map")
   })
 
   # get_eye <- reactive({
@@ -933,7 +933,7 @@ server<-function(input, output,session) {
   
   ### Update Tabs after Button Click ###
   observeEvent(input$dp,{
-    updateTabsetPanel(session,"qc_tab","Quality Raincloud")
+    updateTabsetPanel(session,"qc_tab","Raincloud Plot")
   })
   
   ### Quality Control - Plot after Clicking the Button ###
@@ -1000,11 +1000,11 @@ server<-function(input, output,session) {
       tabsetPanel(type="tabs",id="qc_tab",
                   tabPanel("Table",DT::dataTableOutput("qc_table")),
                   if(data_type=="FreeSurfer"){
-                    tabPanel("Quality Raincloud",plotOutput("quality",height = "7500px",width = "1300px"))
+                    tabPanel("Raincloud Plot",plotOutput("quality",height = "7500px",width = "1300px"))
                   }else if(data_type=="CERES"){
-                    tabPanel("Quality Raincloud",plotOutput("quality",height = "8500px",width = "1500px"))
+                    tabPanel("Raincloud Plot",plotOutput("quality",height = "8500px",width = "1500px"))
                   }#else{
-                  #  tabPanel("Quality Raincloud",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),
+                  #  tabPanel("Raincloud Plot",plotOutput("quality",height = paste0(((length(input$qc_col)+1)%/%2)*250,"px"),
                    #                                         width = "1300px"))
                   #}
       )
@@ -1015,12 +1015,12 @@ server<-function(input, output,session) {
   
   ### ###
   observeEvent(input$rp,{
-    updateTabsetPanel(session,"ss_tab","Regression Plots")
+    updateTabsetPanel(session,"ss_tab","Regression Plot")
   })
   
   ### ###
   observeEvent(input$lp,{
-    updateTabsetPanel(session,"ls_tab","Lasso tabel")
+    updateTabsetPanel(session,"ls_tab","Lasso Regression")
   })
   
   ### ###
@@ -1030,13 +1030,13 @@ server<-function(input, output,session) {
       tabsetPanel(type="tabs",id="ss_tab",
                   tabPanel("Table",DT::dataTableOutput("ss_table")),
                   if(data_type=="FreeSurfer"){
-                    tabPanel("Regression Plots",plotOutput("regression",height ="40000px",width = "1000px"))
+                    tabPanel("Regression Plot",plotOutput("regression",height ="40000px",width = "1000px"))
                   }else if(data_type=="CERES"){
-                    tabPanel("Regression Plots",plotOutput("regression",height = "59000px",width = "1500px"))
+                    tabPanel("Regression Plot",plotOutput("regression",height = "59000px",width = "1500px"))
                   }else{
                     # tabPanel("Quality Raincloud",plotOutput("quality",height = 
                     #paste0(((length(input$qc_col)+1)%/%2)*250,"px"),width = "1300px"))
-                    tabPanel("Regression Plots",plotOutput("regression",height = "500px",width = "500px"))
+                    tabPanel("Regression Plot",plotOutput("regression",height = "500px",width = "500px"))
                   }
       )
     )
@@ -1089,6 +1089,8 @@ server<-function(input, output,session) {
     consistent.sign.all <- get.sign.consistency(lasso.b.all[,-1])
     bs.data <<- data.frame(prop.nonzero.all,consistent.sign.all)
     rownames(bs.data) <- colnames(lasso.b.all)[-1]
+    colnames(bs.data) <- c("Proportion of non-zero regression coefficients",
+                           "All regression coefficients positive or negative")
     label_ExplantoryVariable<-input$lasso_variable
     output$lasso_table<- DT::renderDataTable({
       DT::datatable(bs.data,class = "display nowrap",options = list(scrollX=TRUE),
